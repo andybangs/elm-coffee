@@ -1,5 +1,6 @@
 var gulp = require('gulp');
 var elm = require('gulp-elm');
+var uglify = require('gulp-uglify');
 var rename = require('gulp-rename');
 
 gulp.task('elm-init', elm.init);
@@ -13,6 +14,7 @@ gulp.task('elm', ['elm-init'], function() {
   return gulp.src('./Calculator.elm')
     .pipe(elm())
     .on('error', swallowError)
+    .pipe(uglify())
     .pipe(rename('calculator.js'))
     .pipe(gulp.dest('./'))
 });

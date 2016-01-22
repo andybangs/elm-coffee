@@ -4,7 +4,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Signal exposing (Address)
-import StartApp.Simple as StartApp
+import Time exposing (every, second)
 
 
 -- MODEL
@@ -13,6 +13,8 @@ type alias Model =
   { coffee : Int
   , water : Int
   , ratio : Int
+  , time : Int
+  , isTicking : Bool
   }
 
 initialModel : Model
@@ -20,6 +22,8 @@ initialModel =
   { coffee = 20
   , water = 320
   , ratio = 16
+  , time = 0
+  , isTicking = False
   }
 
 
@@ -41,6 +45,9 @@ type Action =
   | Coffee Operation
   | Water Operation
   | Ratio Operation
+  | Tick
+  | Toggle
+  | Reset
 
 update : Action -> Model -> Model
 update action model =
@@ -75,6 +82,15 @@ update action model =
         , ratio = newRatio
         }
 
+    Tick ->
+      if model.isTicking then { model | time = model.time + 1 } else model
+
+    Toggle ->
+      { model | isTicking = not model.isTicking }
+
+    Reset ->
+      { model | time = 0 }
+
 
 -- VIEW
 
@@ -93,12 +109,35 @@ view address model =
 
     timer : Html
     timer =
-      div
-        [ classList [("column", True), ("timer", True)] ]
-        [ h2 [] [ text "timer" ]
-        , h1 [] [ text "0:00" ]
-        , a [ class "start"] [ text "start" ]
-        ]
+      let
+        time =
+          let
+            minutes = model.time // 60
+            seconds = model.time - minutes * 60
+          in
+            if seconds > 9 then
+              (toString minutes) ++ ":" ++ (toString seconds)
+            else
+              (toString minutes) ++ ":0" ++ (toString seconds)
+
+        toggleText : String
+        toggleText =
+          if model.isTicking then "stop" else "start"
+
+        resetButton : Html
+        resetButton =
+          if not model.isTicking && model.time /= 0 then
+            a [ class "start", onClick address Reset ] [ text "reset" ]
+          else
+            a [] []
+      in
+        div
+          [ classList [("column", True), ("timer", True)] ]
+          [ h2 [] [ text "timer" ]
+          , h1 [] [ text time ]
+          , a [ class "start", onClick address Toggle ] [ text toggleText ]
+          , resetButton
+          ]
   in
     div
       [ id "container" ]
@@ -115,12 +154,20 @@ view address model =
       ]
 
 
--- MAIN
+-- INPUTS
+
+actions : Signal.Mailbox Action
+actions =
+  Signal.mailbox NoOp
+
+ticker : Signal Action
+ticker =
+  Signal.map (always Tick) (Time.every Time.second)
+
+model : Signal Model
+model =
+  Signal.foldp update initialModel (Signal.merge actions.signal ticker)
 
 main : Signal Html
 main =
-  StartApp.start
-    { model = initialModel
-    , view = view
-    , update = update
-    }
+  Signal.map (view actions.address) model

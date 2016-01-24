@@ -5,16 +5,21 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Signal exposing (Address)
 import Time exposing (every, second)
+import Json.Decode as Json
+import String exposing (toInt)
 
 
 -- MODEL
+
+type Editing = None | CoffeeVal | WaterVal | RatioVal
 
 type alias Model =
   { coffee : Int
   , water : Int
   , ratio : Int
+  , editing : Editing
   , time : Int
-  , isTicking : Bool
+  , ticking : Bool
   }
 
 initialModel : Model
@@ -22,8 +27,9 @@ initialModel =
   { coffee = 20
   , water = 320
   , ratio = 16
+  , editing = None
   , time = 0
-  , isTicking = False
+  , ticking = False
   }
 
 
@@ -45,6 +51,8 @@ type Action =
   | Coffee Operation
   | Water Operation
   | Ratio Operation
+  | ToggleEdit Editing
+  | UpdateVal String String
   | Tick
   | Toggle
   | Reset
@@ -82,11 +90,26 @@ update action model =
         , ratio = newRatio
         }
 
+    ToggleEdit editVal ->
+      { model | editing = editVal }
+
+    UpdateVal title valString ->
+      let
+        val = parseInt valString
+      in
+        if title == "coffee" then
+          { model | coffee = val, water = val * model.ratio }
+        else if title == "water" then
+          { model | coffee = val // model.ratio, water = val }
+        else if title == "ratio" then
+          { model | water = model.coffee * val, ratio = val }
+        else model
+
     Tick ->
-      if model.isTicking then { model | time = model.time + 1 } else model
+      if model.ticking then { model | time = model.time + 1 } else model
 
     Toggle ->
-      { model | isTicking = not model.isTicking }
+      { model | ticking = not model.ticking }
 
     Reset ->
       { model | time = 0 }
@@ -97,15 +120,32 @@ update action model =
 view : Address Action -> Model -> Html
 view address model =
   let
-    component : String -> String -> Action -> Action -> Html
-    component title display incAction decAction =
-      div
-        [ classList [("column", True), (title, True)] ]
-        [ h2 [] [ text title ]
-        , a [ class "up", onClick address incAction ] []
-        , h1 [] [ text display ]
-        , a [ class "down", onClick address decAction ] []
-        ]
+    component : String -> Int -> Editing -> Action -> Action -> Html
+    component title val editVal incAction decAction =
+      let
+        main =
+          if model.editing == editVal then
+            input
+              [ type' "number"
+              , pattern "[0-9]*"
+              , attribute "inputmode" "numeric"
+              , on "input" targetValue (Signal.message address << UpdateVal title)
+              , onBlur address (ToggleEdit None)
+              , onEnter address (ToggleEdit None)
+              , value (toString val)
+              , autofocus True
+              ]
+              [ ]
+          else
+            h1 [ onClick address (ToggleEdit editVal) ] [ text (toString val) ]
+      in
+        div
+          [ classList [("column", True), (title, True)] ]
+          [ h2 [] [ text title ]
+          , a [ class "up", onClick address incAction ] []
+          , main
+          , a [ class "down", onClick address decAction ] []
+          ]
 
     timer : Html
     timer =
@@ -122,11 +162,11 @@ view address model =
 
         toggleText : String
         toggleText =
-          if model.isTicking then "stop" else "start"
+          if model.ticking then "stop" else "start"
 
         resetButton : Html
         resetButton =
-          if not model.isTicking && model.time /= 0 then
+          if not model.ticking && model.time /= 0 then
             a [ class "start", onClick address Reset ] [ text "reset" ]
           else
             a [] []
@@ -143,16 +183,15 @@ view address model =
       [ id "container" ]
       [ div
           [ class "row"]
-          [ component "coffee" (toString model.coffee) (Coffee inc) (Coffee dec)
-          , component "water" (toString model.water) (Water inc) (Water dec)
+          [ component "coffee" model.coffee CoffeeVal (Coffee inc) (Coffee dec)
+          , component "water" model.water WaterVal (Water inc) (Water dec)
           ]
       , div
           [ class "row" ]
-          [ component "ratio" ("1:" ++ toString model.ratio) (Ratio inc) (Ratio dec)
+          [ component "ratio" model.ratio RatioVal (Ratio inc) (Ratio dec)
           , timer
           ]
       ]
-
 
 -- INPUTS
 
@@ -171,3 +210,24 @@ model =
 main : Signal Html
 main =
   Signal.map (view actions.address) model
+
+-- HELPERS
+
+parseInt : String -> Int
+parseInt string =
+  case String.toInt string of
+    Ok value ->
+      value
+    Err error ->
+      0
+
+onEnter : Address a -> a -> Attribute
+onEnter address value =
+    on "keydown"
+      (Json.customDecoder keyCode is13)
+      (\_ -> Signal.message address value)
+
+
+is13 : Int -> Result String ()
+is13 code =
+  if code == 13 then Ok () else Err "not the right key code"

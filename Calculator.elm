@@ -141,9 +141,9 @@ view address model =
       in
         div
           [ classList [("column", True), (title, True)] ]
-          [ h2 [] [ text title ]
+          [ h2 [ class "title" ] [ text title ]
           , a [ class "up", onClick address incAction ] []
-          , main
+          , div [ class "main" ] [ main ]
           , a [ class "down", onClick address decAction ] []
           ]
 
@@ -167,27 +167,29 @@ view address model =
         resetButton : Html
         resetButton =
           if not model.ticking && model.time /= 0 then
-            a [ class "start", onClick address Reset ] [ text "reset" ]
+            a [ class "button", onClick address Reset ] [ text "reset" ]
           else
             a [] []
       in
         div
           [ classList [("column", True), ("timer", True)] ]
-          [ h2 [] [ text "timer" ]
-          , h1 [] [ text time ]
-          , a [ class "start", onClick address Toggle ] [ text toggleText ]
-          , resetButton
+          [ h2 [ class "timer-title" ] [ text "timer" ]
+          , h1 [ class "timer-main" ] [ text time ]
+          , div [ class "start" ]
+              [ a [ class "button", onClick address Toggle ] [ text toggleText ]
+              , resetButton
+              ]
           ]
   in
     div
       [ id "container" ]
       [ div
-          [ class "row"]
+          [ id "topRow", class "row"]
           [ component "coffee" model.coffee CoffeeVal (Coffee inc) (Coffee dec)
           , component "water" model.water WaterVal (Water inc) (Water dec)
           ]
       , div
-          [ class "row" ]
+          [ id "bottomRow", class "row" ]
           [ component "ratio" model.ratio RatioVal (Ratio inc) (Ratio dec)
           , timer
           ]

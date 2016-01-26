@@ -13,28 +13,42 @@ body {
 h1 {
   font-size: 3.3em;
   font-weight: 700;
+  cursor: pointer;
 }
 
 h2 {
-    font-size: 1rem;
-    text-transform: uppercase;
-    letter-spacing: .2em;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: .2em;
 }
 
 a {
   cursor: pointer;
 }
 
-a.up:before {
+a.up-button:before {
     content: '\2227';
     font-size: 1.7em;
     font-weight: bold;
 }
 
-a.down:before {
+a.down-button:before {
     content: '\2228';
     font-size: 1.7em;
     font-weight: bold;
+}
+
+input {
+  font-size: 2.8em;
+  font-weight: 700;
+  text-align: center;
+  width: 50%;
+}
+
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .coffee {
@@ -59,17 +73,8 @@ a.down:before {
   align-items: stretch;
 }
 
-#topRow {
-  order: 1;
-  height: 50%;
-}
-
-#bottomRow {
-  order: 2;
-  height: 50%;
-}
-
 .row {
+  height: 50%;
   display: flex;
   flex-flow: row;
   align-items: center;
@@ -82,50 +87,26 @@ a.down:before {
   align-items: stretch;
 }
 
-.title {
+.flex-1 {
   flex: 1;
+  display: flex;
+  flext-flow: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.up {
-  flex: 1;
-}
-
-.main {
-  flex: 3;
-}
-
-.down {
+.flex-2 {
   flex: 2;
+  display: flex;
+  flext-flow: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.timer-title {
-  flex: 3;
-}
-
-.timer-main {
-  flex: 3;
-}
-
-.start {
+.flex-3 {
   flex: 3;
   display: flex;
-  flex-flow: row;
-  align-items: stretch;
-}
-
-.button {
-  flex: 1;
-}
-
-input {
-  font-size: 3em;
-  font-weight: 700;
-  text-align: center;
-  width: 50%;
-}
-
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  flext-flow: column;
+  align-items: center;
+  justify-content: center;
 }

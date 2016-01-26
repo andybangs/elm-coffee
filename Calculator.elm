@@ -4,14 +4,18 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Signal exposing (Address)
+import String exposing (toInt)
 import Time exposing (every, second)
 import Json.Decode as Json
-import String exposing (toInt)
 
 
 -- MODEL
 
-type Editing = None | CoffeeVal | WaterVal | RatioVal
+type Editing =
+  None
+  | CoffeeVal
+  | WaterVal
+  | RatioVal
 
 type alias Model =
   { coffee : Int
@@ -38,14 +42,6 @@ initialModel =
 type alias Operation =
   Int -> Int
 
-inc : Operation
-inc n =
-  n + 1
-
-dec : Operation
-dec n =
-  n - 1
-
 type Action =
   NoOp
   | Coffee Operation
@@ -67,28 +63,19 @@ update action model =
       let
         newCoffee = op model.coffee
       in
-        { model |
-          coffee = newCoffee
-        , water = newCoffee * model.ratio
-        }
+        { model | coffee = newCoffee, water = newCoffee * model.ratio }
 
     Water op ->
       let
         newWater = op model.water
       in
-        { model |
-          coffee = newWater // model.ratio
-        , water = newWater
-        }
+        { model | coffee = newWater // model.ratio, water = newWater }
 
     Ratio op ->
       let
         newRatio = op model.ratio
       in
-        { model |
-          water = model.coffee * newRatio
-        , ratio = newRatio
-        }
+        { model | water = model.coffee * newRatio, ratio = newRatio }
 
     ToggleEdit editVal ->
       { model | editing = editVal }
@@ -120,8 +107,8 @@ update action model =
 view : Address Action -> Model -> Html
 view address model =
   let
-    component : String -> Int -> Editing -> Action -> Action -> Html
-    component title val editVal incAction decAction =
+    buildComponent : String -> String -> Int -> Editing -> Action -> Action -> Html
+    buildComponent title display val editVal incAction decAction =
       let
         main =
           if model.editing == editVal then
@@ -134,17 +121,20 @@ view address model =
               , onEnter address (ToggleEdit None)
               , value (toString val)
               , autofocus True
-              ]
-              [ ]
+              ] []
           else
-            h1 [ onClick address (ToggleEdit editVal) ] [ text (toString val) ]
+            h1 [ onClick address (ToggleEdit editVal) ] [ text display ]
       in
-        div
-          [ classList [("column", True), (title, True)] ]
-          [ h2 [ class "title" ] [ text title ]
-          , a [ class "up", onClick address incAction ] []
-          , div [ class "main" ] [ main ]
-          , a [ class "down", onClick address decAction ] []
+        div [ classList [("column", True), (title, True)] ]
+          [ div [ class "flex-1" ]
+              [ h2 [] [ text title ] ]
+          , div [ class "flex-2" ]
+              [ a [ class "up-button", onClick address incAction ] [] ]
+          , div [ class "flex-3" ]
+              [ main ]
+          , div [ class "flex-2" ]
+              [ a [ class "down-button", onClick address decAction ] [] ]
+          , div [ class "flex-1" ] []
           ]
 
     timer : Html
@@ -160,40 +150,37 @@ view address model =
             else
               (toString minutes) ++ ":0" ++ (toString seconds)
 
-        toggleText : String
         toggleText =
           if model.ticking then "stop" else "start"
 
-        resetButton : Html
         resetButton =
           if not model.ticking && model.time /= 0 then
-            a [ class "button", onClick address Reset ] [ text "reset" ]
+            a [ class "flex-1", onClick address Reset ] [ text "reset" ]
           else
             a [] []
       in
-        div
-          [ classList [("column", True), ("timer", True)] ]
-          [ h2 [ class "timer-title" ] [ text "timer" ]
-          , h1 [ class "timer-main" ] [ text time ]
-          , div [ class "start" ]
-              [ a [ class "button", onClick address Toggle ] [ text toggleText ]
+        div [ classList [("column", True), ("timer", True)] ]
+          [ div [ class "flex-1" ] [ h2 [] [ text "timer" ] ]
+          , div [ class "flex-2" ] []
+          , div [ class "flex-3" ] [ h1 [] [ text time ] ]
+          , div [ class "flex-2" ]
+              [ a [ class "flex-1", onClick address Toggle ] [ text toggleText ]
               , resetButton
               ]
+          , div [ class "flex-1" ] []
           ]
   in
-    div
-      [ id "container" ]
-      [ div
-          [ id "topRow", class "row"]
-          [ component "coffee" model.coffee CoffeeVal (Coffee inc) (Coffee dec)
-          , component "water" model.water WaterVal (Water inc) (Water dec)
+    div [ id "container" ]
+      [ div [ class "row"]
+          [ buildComponent "coffee" (toString model.coffee) model.coffee CoffeeVal (Coffee inc) (Coffee dec)
+          , buildComponent "water" (toString model.water) model.water WaterVal (Water inc) (Water dec)
           ]
-      , div
-          [ id "bottomRow", class "row" ]
-          [ component "ratio" model.ratio RatioVal (Ratio inc) (Ratio dec)
+      , div [ class "row" ]
+          [ buildComponent "ratio" ("1:" ++ (toString model.ratio)) model.ratio RatioVal (Ratio inc) (Ratio dec)
           , timer
           ]
       ]
+
 
 -- INPUTS
 
@@ -213,7 +200,16 @@ main : Signal Html
 main =
   Signal.map (view actions.address) model
 
+
 -- HELPERS
+
+inc : Operation
+inc n =
+  n + 1
+
+dec : Operation
+dec n =
+  n - 1
 
 parseInt : String -> Int
 parseInt string =

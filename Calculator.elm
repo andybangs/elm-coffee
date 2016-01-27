@@ -39,14 +39,11 @@ initialModel =
 
 -- UPDATE
 
-type alias Operation =
-  Int -> Int
-
 type Action =
   NoOp
-  | Coffee Operation
-  | Water Operation
-  | Ratio Operation
+  | Coffee (Int -> Int)
+  | Water (Int -> Int)
+  | Ratio (Int -> Int)
   | ToggleEdit Editing
   | UpdateVal String String
   | Tick
@@ -61,21 +58,30 @@ update action model =
 
     Coffee op ->
       let
-        newCoffee = op model.coffee
+        newCoffee =
+          op model.coffee
       in
-        { model | coffee = newCoffee, water = newCoffee * model.ratio }
+        if newCoffee >= 0 then
+          { model | coffee = newCoffee, water = newCoffee * model.ratio }
+        else model
 
     Water op ->
       let
-        newWater = op model.water
+        newWater =
+          op model.water
       in
-        { model | coffee = newWater // model.ratio, water = newWater }
+        if newWater >= 0 then
+          { model | coffee = newWater // model.ratio, water = newWater }
+        else model
 
     Ratio op ->
       let
-        newRatio = op model.ratio
+        newRatio =
+          op model.ratio
       in
-        { model | water = model.coffee * newRatio, ratio = newRatio }
+        if newRatio >= 0 then
+          { model | water = model.coffee * newRatio, ratio = newRatio }
+        else model
 
     ToggleEdit editVal ->
       { model | editing = editVal }
@@ -145,10 +151,8 @@ view address model =
             minutes = model.time // 60
             seconds = model.time - minutes * 60
           in
-            if seconds > 9 then
-              (toString minutes) ++ ":" ++ (toString seconds)
-            else
-              (toString minutes) ++ ":0" ++ (toString seconds)
+            if seconds > 9 then (toString minutes) ++ ":" ++ (toString seconds)
+            else (toString minutes) ++ ":0" ++ (toString seconds)
 
         toggleText =
           if model.ticking then "stop" else "start"
@@ -156,8 +160,7 @@ view address model =
         resetButton =
           if not model.ticking && model.time /= 0 then
             a [ class "flex-1", onClick address Reset ] [ text "reset" ]
-          else
-            a [] []
+          else a [] []
       in
         div [ classList [("column", True), ("timer", True)] ]
           [ div [ class "flex-1" ] [ h2 [] [ text "timer" ] ]
@@ -203,11 +206,11 @@ main =
 
 -- HELPERS
 
-inc : Operation
+inc : Int -> Int
 inc n =
   n + 1
 
-dec : Operation
+dec : Int -> Int
 dec n =
   n - 1
 

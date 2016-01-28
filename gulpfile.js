@@ -15,7 +15,7 @@ gulp.task('elm', ['elm-init'], function() {
     .pipe(elm())
     .on('error', swallowError)
     .pipe(uglify())
-    .pipe(rename('calculator.js'))
+    .pipe(rename('calculator-min.js'))
     .pipe(gulp.dest('./'))
 });
 

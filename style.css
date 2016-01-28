@@ -11,7 +11,7 @@ body {
 }
 
 h1 {
-  font-size: 3.3em;
+  font-size: 3em;
   font-weight: 700;
   cursor: pointer;
 }
@@ -39,10 +39,10 @@ a.down-button:before {
 }
 
 input {
-  font-size: 2.8em;
+  font-size: 2em;
   font-weight: 700;
   text-align: center;
-  width: 50%;
+  width: 65%;
 }
 
 input[type=number]::-webkit-inner-spin-button,

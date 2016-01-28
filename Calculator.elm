@@ -21,6 +21,9 @@ type alias Model =
   { coffee : Int
   , water : Int
   , ratio : Int
+  , maxCoffee: Int
+  , maxWater: Int
+  , maxRatio: Int
   , editing : Editing
   , time : Int
   , ticking : Bool
@@ -31,6 +34,9 @@ initialModel =
   { coffee = 20
   , water = 320
   , ratio = 16
+  , maxCoffee = 100
+  , maxWater = 1900
+  , maxRatio = 19
   , editing = None
   , time = 0
   , ticking = False
@@ -61,26 +67,31 @@ update action model =
         newCoffee =
           op model.coffee
       in
-        if newCoffee >= 0 then
+        if newCoffee >= 0 && newCoffee <= model.maxCoffee then
           { model | coffee = newCoffee, water = newCoffee * model.ratio }
         else model
-
     Water op ->
       let
         newWater =
           op model.water
+
+        newCoffee =
+          newWater // model.ratio
       in
-        if newWater >= 0 then
-          { model | coffee = newWater // model.ratio, water = newWater }
+        if newWater >= 0 && newCoffee <= model.maxCoffee then
+          { model | coffee = newCoffee, water = newWater }
         else model
 
     Ratio op ->
       let
         newRatio =
           op model.ratio
+
+        newWater =
+          model.coffee * newRatio
       in
-        if newRatio >= 0 then
-          { model | water = model.coffee * newRatio, ratio = newRatio }
+        if newRatio >= 0 && newRatio <= model.maxRatio then
+          { model | water = newWater, ratio = newRatio }
         else model
 
     ToggleEdit editVal ->
@@ -91,11 +102,20 @@ update action model =
         val = parseInt valString
       in
         if title == "coffee" then
-          { model | coffee = val, water = val * model.ratio }
+          if val <= model.maxCoffee then
+            { model | coffee = val, water = val * model.ratio }
+          else
+            { model | coffee = model.maxCoffee, water = model.maxCoffee * model.ratio }
         else if title == "water" then
-          { model | coffee = val // model.ratio, water = val }
+          if val // model.ratio <= model.maxCoffee then
+            { model | coffee = val // model.ratio, water = val }
+          else
+            { model | coffee = model.maxCoffee, water = model.maxCoffee * model.ratio }
         else if title == "ratio" then
-          { model | water = model.coffee * val, ratio = val }
+          if val <= model.maxRatio then
+            { model | water = model.coffee * val, ratio = val }
+          else
+            { model | water = model.coffee * model.maxRatio, ratio = model.maxRatio }
         else model
 
     Tick ->
@@ -113,8 +133,8 @@ update action model =
 view : Address Action -> Model -> Html
 view address model =
   let
-    buildComponent : String -> String -> Int -> Editing -> Action -> Action -> Html
-    buildComponent title display val editVal incAction decAction =
+    buildComponent : String -> String -> Int -> Int -> Editing -> Action -> Action -> Html
+    buildComponent title display val maxVal editVal incAction decAction =
       let
         main =
           if model.editing == editVal then
@@ -175,11 +195,11 @@ view address model =
   in
     div [ id "container" ]
       [ div [ class "row"]
-          [ buildComponent "coffee" (toString model.coffee) model.coffee CoffeeVal (Coffee inc) (Coffee dec)
-          , buildComponent "water" (toString model.water) model.water WaterVal (Water inc) (Water dec)
+          [ buildComponent "coffee" (toString model.coffee) model.coffee model.maxCoffee CoffeeVal (Coffee inc) (Coffee dec)
+          , buildComponent "water" (toString model.water) model.water model.maxWater WaterVal (Water inc) (Water dec)
           ]
       , div [ class "row" ]
-          [ buildComponent "ratio" ("1:" ++ (toString model.ratio)) model.ratio RatioVal (Ratio inc) (Ratio dec)
+          [ buildComponent "ratio" ("1:" ++ (toString model.ratio)) model.ratio model.maxRatio RatioVal (Ratio inc) (Ratio dec)
           , timer
           ]
       ]

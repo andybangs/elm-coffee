@@ -62,7 +62,7 @@ type Action =
   | UpdateVal Ingredient String
   | Tick
   | ToggleTicking
-  | Reset
+  | ResetTimer
 
 update : Action -> Model -> Model
 update action model =
@@ -221,7 +221,7 @@ update action model =
       ToggleTicking ->
         { model | ticking = not model.ticking }
 
-      Reset ->
+      ResetTimer ->
         { model | time = 0 }
 
 
@@ -229,90 +229,89 @@ update action model =
 
 view : Address Action -> Model -> Html
 view address model =
+  div [ id "container" ]
+    [ div [ class "row"]
+        [ componentPanel address model.coffee (ChangeCoffee incCoffee) (ChangeCoffee decCoffee)
+        , componentPanel address model.water (ChangeWater incWater) (ChangeWater decWater)
+        ]
+    , div [ class "row" ]
+        [ componentPanel address model.ratio (ChangeRatio incRatio) (ChangeRatio decRatio)
+        , timer address model.time model.ticking
+        ]
+    ]
+
+componentPanel : Address Action -> Component -> Action -> Action -> Html
+componentPanel address component incAction decAction =
   let
-    buildComponent : Component -> Action -> Action -> Html
-    buildComponent component incAction decAction =
+    main =
       let
-        main =
-          let
-            displayValue =
-              if component.displayUnit == G then component.value
-              else toDecimal (gToOz component.value)
-          in
-            if component.editing then
-              [ input
-                [ type' "number"
-                , pattern "[0-9]*"
-                , attribute "inputmode" "numeric"
-                , on "input" targetValue (Signal.message address << UpdateVal component.title)
-                , onBlur address (ToggleEdit component.title)
-                , onEnter address (ToggleEdit component.title)
-                , value (toString displayValue)
-                , autofocus True
-                ] []
-              ]
-            else
-              if component.title == Ratio then
-                [ h1 [ onClick address (ToggleEdit component.title) ]
-                    [ text ("1:" ++ toString component.value) ]
-                ]
-              else
-                [ h1 [ onClick address (ToggleEdit component.title) ]
-                    [ text (toString displayValue) ]
-                , a [ class "unit", onClick address (ToggleUnit component.title) ]
-                    [ text (String.toLower (toString component.displayUnit)) ]
-                ]
+        displayValue =
+          if component.displayUnit == G then component.value
+          else toDecimal (gToOz component.value)
       in
-        div [ classList [("column", True), ((toString component.title), True)] ]
-          [ div [ class "flex-1" ]
-              [ h2 [] [ text (toString component.title) ] ]
-          , div [ class "flex-2" ]
-              [ a [ class "up-button", onClick address incAction ] [] ]
-          , div [ class "flex-3" ] main
-          , div [ class "flex-2" ]
-              [ a [ class "down-button", onClick address decAction ] [] ]
-          , div [ class "flex-1" ] []
+        if component.editing then
+          [ input
+            [ type' "number"
+            , pattern "[0-9]*"
+            , attribute "inputmode" "numeric"
+            , on "input" targetValue (Signal.message address << UpdateVal component.title)
+            , onBlur address (ToggleEdit component.title)
+            , onEnter address (ToggleEdit component.title)
+            , value (toString displayValue)
+            , autofocus True
+            ] []
           ]
-
-    timer : Html
-    timer =
-      let
-        time =
-          let
-            minutes = model.time // 60
-            seconds = model.time - minutes * 60
-          in
-            if seconds > 9 then (toString minutes) ++ ":" ++ (toString seconds)
-            else (toString minutes) ++ ":0" ++ (toString seconds)
-
-        toggleText =
-          if model.ticking then "stop" else "start"
-
-        resetButton =
-          if not model.ticking && model.time /= 0 then
-            a [ class "flex-1", onClick address Reset ] [ text "reset" ]
-          else a [] []
-      in
-        div [ classList [("column", True), ("timer", True)] ]
-          [ div [ class "flex-1" ] [ h2 [] [ text "timer" ] ]
-          , div [ class "flex-2" ] []
-          , div [ class "flex-3" ] [ h1 [] [ text time ] ]
-          , div [ class "flex-2" ]
-              [ a [ class "flex-1", onClick address ToggleTicking ] [ text toggleText ]
-              , resetButton
-              ]
-          , div [ class "flex-1" ] []
-          ]
+        else
+          if component.title == Ratio then
+            [ h1 [ onClick address (ToggleEdit component.title) ]
+                [ text ("1:" ++ toString component.value) ]
+            ]
+          else
+            [ h1 [ onClick address (ToggleEdit component.title) ]
+                [ text (toString displayValue) ]
+            , a [ class "unit", onClick address (ToggleUnit component.title) ]
+                [ text (String.toLower (toString component.displayUnit)) ]
+            ]
   in
-    div [ id "container" ]
-      [ div [ class "row"]
-          [ buildComponent model.coffee (ChangeCoffee incCoffee) (ChangeCoffee decCoffee)
-          , buildComponent model.water (ChangeWater incWater) (ChangeWater decWater)
+    div [ classList [("column", True), ((toString component.title), True)] ]
+      [ div [ class "flex-1" ]
+          [ h2 [] [ text (toString component.title) ] ]
+      , div [ class "flex-2" ]
+          [ a [ class "up-button", onClick address incAction ] [] ]
+      , div [ class "flex-3" ] main
+      , div [ class "flex-2" ]
+          [ a [ class "down-button", onClick address decAction ] [] ]
+      , div [ class "flex-1" ] []
+      ]
+
+timer : Address Action -> Int -> Bool -> Html
+timer address time ticking =
+  let
+    formattedTime =
+      let
+        minutes = time // 60
+        seconds = time - minutes * 60
+      in
+        if seconds > 9 then (toString minutes) ++ ":" ++ (toString seconds)
+        else (toString minutes) ++ ":0" ++ (toString seconds)
+
+    toggleText =
+      if ticking then "stop" else "start"
+
+    resetButton =
+      if not ticking && time /= 0 then
+        a [ class "flex-1", onClick address ResetTimer ] [ text "reset" ]
+      else a [] []
+  in
+    div [ classList [("column", True), ("timer", True)] ]
+      [ div [ class "flex-1" ] [ h2 [] [ text "timer" ] ]
+      , div [ class "flex-2" ] []
+      , div [ class "flex-3" ] [ h1 [] [ text formattedTime ] ]
+      , div [ class "flex-2" ]
+          [ a [ class "flex-1", onClick address ToggleTicking ] [ text toggleText ]
+          , resetButton
           ]
-      , div [ class "row" ]
-          [ buildComponent model.ratio (ChangeRatio incRatio) (ChangeRatio decRatio)
-          , timer
-          ]
+      , div [ class "flex-1" ] []
       ]
 
 

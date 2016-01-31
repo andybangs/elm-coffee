@@ -11,7 +11,7 @@ body {
 }
 
 h1 {
-  font-size: 3em;
+  font-size: 2.8em;
   font-weight: 700;
   cursor: pointer;
 }
@@ -27,15 +27,20 @@ a {
 }
 
 a.up-button:before {
-    content: '\2227';
-    font-size: 1.7em;
-    font-weight: bold;
+  content: '\2227';
+  font-size: 1.7em;
+  font-weight: bold;
 }
 
 a.down-button:before {
-    content: '\2228';
-    font-size: 1.7em;
-    font-weight: bold;
+  content: '\2228';
+  font-size: 1.7em;
+  font-weight: bold;
+}
+
+a.unit {
+  font-size: 1.7em;
+  padding: 10px;
 }
 
 input {
@@ -51,15 +56,15 @@ input[type=number]::-webkit-outer-spin-button {
   margin: 0;
 }
 
-.coffee {
+.Coffee {
   background: #CA827B;
 }
 
-.water {
+.Water {
   background: #7CC7E4;
 }
 
-.ratio {
+.Ratio {
   background: #EAEAEA;
 }
 

@@ -243,6 +243,9 @@ view address model =
 componentPanel : Address Action -> Component -> Action -> Action -> Html
 componentPanel address component incAction decAction =
   let
+    componentTitle =
+      h2 [] [ text (toString component.title) ]
+
     main =
       let
         displayValue =
@@ -250,7 +253,7 @@ componentPanel address component incAction decAction =
           else toDecimal (gToOz component.value)
       in
         if component.editing then
-          [ input
+          input
             [ type' "number"
             , pattern "[0-9]*"
             , attribute "inputmode" "numeric"
@@ -260,27 +263,44 @@ componentPanel address component incAction decAction =
             , value (toString displayValue)
             , autofocus True
             ] []
-          ]
         else
           if component.title == Ratio then
-            [ h1 [ onClick address (ToggleEdit component.title) ]
-                [ text ("1:" ++ toString component.value) ]
-            ]
+            h1 [ onClick address (ToggleEdit component.title) ]
+              [ text ("1:" ++ toString component.value) ]
           else
-            [ h1 [ onClick address (ToggleEdit component.title) ]
-                [ text (toString displayValue) ]
-            , a [ class "unit", onClick address (ToggleUnit component.title) ]
-                [ text (String.toLower (toString component.displayUnit)) ]
-            ]
+            h1 [ onClick address (ToggleEdit component.title) ]
+              [ text (toString displayValue) ]
+
+    unit =
+      if component.title /= Ratio then
+        let unitText =
+          if component.displayUnit == G then "grams" else "ounces"
+        in
+          a [ class "unit", onClick address (ToggleUnit component.title) ]
+            [ text unitText ]
+      else
+        a [] []
+
+    opButtons =
+      [ a
+          [ classList [("button", True), ("button-left", True)]
+          , onClick address decAction
+          ]
+          [ text "–" ]
+      , a
+          [ classList [("button", True), ("button-right", True)]
+          , onClick address incAction
+          ]
+          [ text "+" ]
+      ]
+
   in
     div [ classList [("column", True), ((toString component.title), True)] ]
-      [ div [ class "flex-1" ]
-          [ h2 [] [ text (toString component.title) ] ]
-      , div [ class "flex-2" ]
-          [ a [ class "up-button", onClick address incAction ] [] ]
-      , div [ class "flex-3" ] main
-      , div [ class "flex-2" ]
-          [ a [ class "down-button", onClick address decAction ] [] ]
+      [ div [ class "flex-2" ] [ componentTitle ]
+      , div [ class "flex-2" ] [ main ]
+      , div [ class "flex-1" ] [ unit ]
+      , div [ class "flex-1" ] []
+      , div [ classList [("flex-1", True), ("button-cont", True)] ] opButtons
       , div [ class "flex-1" ] []
       ]
 
@@ -298,19 +318,32 @@ timer address time ticking =
     toggleText =
       if ticking then "stop" else "start"
 
-    resetButton =
+    timerButtons =
       if not ticking && time /= 0 then
-        a [ class "flex-1", onClick address ResetTimer ] [ text "reset" ]
-      else a [] []
+        [ a
+            [ classList [("button", True), ("button-left", True)]
+            , onClick address ToggleTicking
+            ]
+            [ text toggleText ]
+        , a
+            [ classList [("button", True), ("button-right", True)]
+            , onClick address ResetTimer
+            ]
+            [ text "reset" ]
+        ]
+      else
+        [ a
+            [ classList [("button", True), ("button-left", True)]
+            , onClick address ToggleTicking
+            ]
+            [ text toggleText ]
+        ]
   in
     div [ classList [("column", True), ("timer", True)] ]
-      [ div [ class "flex-1" ] [ h2 [] [ text "timer" ] ]
+      [ div [ class "flex-2" ] [ h2 [] [ text "timer" ] ]
+      , div [ class "flex-2" ] [ h1 [] [ text formattedTime ] ]
       , div [ class "flex-2" ] []
-      , div [ class "flex-3" ] [ h1 [] [ text formattedTime ] ]
-      , div [ class "flex-2" ]
-          [ a [ class "flex-1", onClick address ToggleTicking ] [ text toggleText ]
-          , resetButton
-          ]
+      , div [ classList [("flex-1", True), ("button-cont", True)] ] timerButtons
       , div [ class "flex-1" ] []
       ]
 

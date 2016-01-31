@@ -20,27 +20,31 @@ h2 {
   font-size: 1rem;
   text-transform: uppercase;
   letter-spacing: .2em;
+  border-bottom: solid 2px;
 }
 
 a {
   cursor: pointer;
 }
 
-a.up-button:before {
-  content: '\2227';
-  font-size: 1.7em;
-  font-weight: bold;
+.button-cont {
+  padding: 0 15px;
 }
 
-a.down-button:before {
-  content: '\2228';
-  font-size: 1.7em;
+a.button {
   font-weight: bold;
+  width: 50%;
+  color: #eaeaea;
+  padding: 5px 0;
+  background: #6d6d6d;
+}
+
+a.button.button-left {
+  background-color: #545454;
 }
 
 a.unit {
-  font-size: 1.7em;
-  padding: 10px;
+  font-size: 1.2em;
 }
 
 input {
@@ -57,19 +61,28 @@ input[type=number]::-webkit-outer-spin-button {
 }
 
 .Coffee {
-  background: #CA827B;
+  background: #F79E8D;
+}
+.Coffee a.button {
+  color: #F79E8D;
+  font-size: 1.2em
 }
 
 .Water {
-  background: #7CC7E4;
+  background: #A7E0F3;
+}
+
+.Water a.button {
+  color: #A7E0F3;
+  font-size: 1.2em
 }
 
 .Ratio {
   background: #EAEAEA;
 }
 
-.timer {
-  background: #D6DBDE;
+.Ratio a.button {
+  font-size: 1.2em;
 }
 
 #container {
@@ -95,7 +108,6 @@ input[type=number]::-webkit-outer-spin-button {
 .flex-1 {
   flex: 1;
   display: flex;
-  flext-flow: column;
   align-items: center;
   justify-content: center;
 }
@@ -103,15 +115,6 @@ input[type=number]::-webkit-outer-spin-button {
 .flex-2 {
   flex: 2;
   display: flex;
-  flext-flow: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.flex-3 {
-  flex: 3;
-  display: flex;
-  flext-flow: column;
   align-items: center;
   justify-content: center;
 }

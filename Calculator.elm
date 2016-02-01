@@ -3,8 +3,8 @@ module Calculator where
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import String exposing (..)
 import Signal exposing (Address)
-import String exposing (toInt)
 import Time exposing (every, second)
 import Json.Decode as Json
 
@@ -54,9 +54,9 @@ initialModel =
 
 type Action =
   NoOp
-  | ChangeCoffee (Unit -> Float -> Float)
-  | ChangeWater (Unit -> Float -> Float)
-  | ChangeRatio (Float -> Float)
+  | ModCoffee (Unit -> Float -> Float)
+  | ModWater (Unit -> Float -> Float)
+  | ModRatio (Float -> Float)
   | ToggleUnit Ingredient
   | ToggleEdit Ingredient
   | UpdateVal Ingredient String
@@ -75,7 +75,7 @@ update action model =
       NoOp ->
         model
 
-      ChangeCoffee op ->
+      ModCoffee op ->
         let
           newVal = op coffee.displayUnit coffee.value
 
@@ -85,11 +85,11 @@ update action model =
             else coffee
 
           newWater =
-            { water | value = toFloat (round (newCoffee.value * ratio.value)) }
+            { water | value = roundFloat (newCoffee.value * ratio.value) }
         in
           { model | coffee = newCoffee, water = newWater }
 
-      ChangeWater op ->
+      ModWater op ->
         let
           newVal = op water.displayUnit water.value
 
@@ -103,7 +103,7 @@ update action model =
         in
           { model | coffee = newCoffee, water = newWater }
 
-      ChangeRatio op ->
+      ModRatio op ->
         let
           newVal = op ratio.value
 
@@ -113,7 +113,7 @@ update action model =
             else ratio
 
           newWater =
-            { water | value = toFloat (round (coffee.value * newRatio.value)) }
+            { water | value = roundFloat (coffee.value * newRatio.value) }
         in
           { model | water = newWater, ratio = newRatio }
 
@@ -157,63 +157,72 @@ update action model =
         let
           val = parseFloat valString
         in
-          if ingredient == Coffee then
-            let
-              valInGrams =
-                if coffee.displayUnit == G then val
-                else toDecimal (ozToG val)
+          case ingredient of
+            Coffee ->
+              let
+                valInGrams =
+                  if coffee.displayUnit == G then val
+                  else toDecimal (ozToG val)
 
-              newCoffee =
-                if valInGrams <= coffee.maxValue then
-                  { coffee | value = valInGrams }
-                else
-                  { coffee | value = coffee.maxValue }
+                newCoffee =
+                  if valInGrams <= coffee.maxValue then
+                    { coffee | value = valInGrams }
+                  else
+                    { coffee | value = coffee.maxValue }
 
-              newWater =
-                if valInGrams <= coffee.maxValue then
-                  { water | value = toFloat (round (valInGrams * ratio.value)) }
-                else
-                  { water | value = toFloat (round (coffee.maxValue * ratio.value)) }
-            in
-              { model | coffee = newCoffee, water = newWater }
+                newWater =
+                  if valInGrams <= coffee.maxValue then
+                    { water |
+                      value = roundFloat (valInGrams * ratio.value)
+                    }
+                  else
+                    { water |
+                      value = roundFloat (coffee.maxValue * ratio.value)
+                    }
+              in
+                { model | coffee = newCoffee, water = newWater }
 
-          else if ingredient == Water then
-            let
-              valInGrams =
-                if water.displayUnit == G then val
-                else toFloat (round (ozToG val))
+            Water ->
+              let
+                valInGrams =
+                  if water.displayUnit == G then val
+                  else roundFloat (ozToG val)
 
-              newWater =
-                if valInGrams / ratio.value <= coffee.maxValue then
-                  { water | value = valInGrams }
-                else
-                  { water | value = toFloat (round (coffee.maxValue * ratio.value)) }
+                newWater =
+                  if valInGrams / ratio.value <= coffee.maxValue then
+                    { water | value = valInGrams }
+                  else
+                    { water |
+                      value = roundFloat (coffee.maxValue * ratio.value)
+                    }
 
-              newCoffee =
-                if valInGrams / ratio.value <= coffee.maxValue then
-                  { coffee | value = toDecimal (valInGrams / ratio.value) }
-                else
-                  { coffee | value = coffee.maxValue }
-            in
-              { model | coffee = newCoffee, water = newWater }
+                newCoffee =
+                  if valInGrams / ratio.value <= coffee.maxValue then
+                    { coffee |
+                      value = toDecimal (valInGrams / ratio.value)
+                    }
+                  else
+                    { coffee | value = coffee.maxValue }
+              in
+                { model | coffee = newCoffee, water = newWater }
 
-          else if ingredient == Ratio then
-            let
-              newRatio =
-                if val <= ratio.maxValue then
-                  { ratio | value = val }
-                else
-                  { ratio | value = ratio.maxValue }
+            Ratio ->
+              let
+                newRatio =
+                  if val <= ratio.maxValue then { ratio | value = val }
+                  else { ratio | value = ratio.maxValue }
 
-              newWater =
-                if val <= ratio.maxValue then
-                  { water | value = toFloat (round (coffee.value * newRatio.value)) }
-                else
-                  { water | value = toFloat (round (coffee.value * ratio.maxValue)) }
-            in
-              { model | water = newWater, ratio = newRatio }
-
-          else model
+                newWater =
+                  if val <= ratio.maxValue then
+                    { water |
+                      value = roundFloat (coffee.value * newRatio.value)
+                    }
+                  else
+                    { water |
+                      value = roundFloat (coffee.value * ratio.maxValue)
+                    }
+              in
+                { model | water = newWater, ratio = newRatio }
 
       Tick ->
         if model.ticking then { model | time = model.time + 1 } else model
@@ -231,47 +240,42 @@ view : Address Action -> Model -> Html
 view address model =
   div [ id "container" ]
     [ div [ class "row"]
-        [ componentPanel address model.coffee (ChangeCoffee incCoffee) (ChangeCoffee decCoffee)
-        , componentPanel address model.water (ChangeWater incWater) (ChangeWater decWater)
+        [ panel address model.coffee (ModCoffee incCoffee) (ModCoffee decCoffee)
+        , panel address model.water (ModWater incWater) (ModWater decWater)
         ]
     , div [ class "row" ]
-        [ componentPanel address model.ratio (ChangeRatio incRatio) (ChangeRatio decRatio)
+        [ panel address model.ratio (ModRatio incRatio) (ModRatio decRatio)
         , timer address model.time model.ticking
         ]
     ]
 
-componentPanel : Address Action -> Component -> Action -> Action -> Html
-componentPanel address component incAction decAction =
+panel : Address Action -> Component -> Action -> Action -> Html
+panel address component incAction decAction =
   let
     componentTitle =
       h2 [] [ text (toString component.title) ]
 
-    main =
+    componentMain =
       let
         displayValue =
           if component.displayUnit == G then component.value
           else toDecimal (gToOz component.value)
+
+        ingredientDisplay =
+          h1 [ onClick address (ToggleEdit component.title) ]
+            [ text (toString displayValue) ]
+
+        ratioDisplay =
+          h1 [ onClick address (ToggleEdit component.title) ]
+            [ text ("1:" ++ toString component.value) ]
       in
         if component.editing then
-          input
-            [ type' "number"
-            , pattern "[0-9]*"
-            , attribute "inputmode" "numeric"
-            , on "input" targetValue (Signal.message address << UpdateVal component.title)
-            , onBlur address (ToggleEdit component.title)
-            , onEnter address (ToggleEdit component.title)
-            , value (toString displayValue)
-            , autofocus True
-            ] []
+          valInput address component.title displayValue
         else
-          if component.title == Ratio then
-            h1 [ onClick address (ToggleEdit component.title) ]
-              [ text ("1:" ++ toString component.value) ]
-          else
-            h1 [ onClick address (ToggleEdit component.title) ]
-              [ text (toString displayValue) ]
+          if component.title /= Ratio then ingredientDisplay
+          else ratioDisplay
 
-    unit =
+    componentUnit =
       if component.title /= Ratio then
         let unitText =
           if component.displayUnit == G then "grams" else "ounces"
@@ -282,13 +286,11 @@ componentPanel address component incAction decAction =
         a [] []
 
     opButtons =
-      [ a
-          [ classList [("button", True), ("button-left", True)]
+      [ a [ classList [("button", True), ("button-left", True)]
           , onClick address decAction
           ]
           [ text "–" ]
-      , a
-          [ classList [("button", True), ("button-right", True)]
+      , a [ classList [("button", True), ("button-right", True)]
           , onClick address incAction
           ]
           [ text "+" ]
@@ -297,12 +299,25 @@ componentPanel address component incAction decAction =
   in
     div [ classList [("column", True), ((toString component.title), True)] ]
       [ div [ class "flex-2" ] [ componentTitle ]
-      , div [ class "flex-2" ] [ main ]
-      , div [ class "flex-1" ] [ unit ]
+      , div [ class "flex-2" ] [ componentMain ]
+      , div [ class "flex-1" ] [ componentUnit ]
       , div [ class "flex-1" ] []
       , div [ classList [("flex-1", True), ("button-cont", True)] ] opButtons
       , div [ class "flex-1" ] []
       ]
+
+valInput : Address Action -> Ingredient -> Float -> Html
+valInput address title displayValue =
+  input [ type' "number"
+    , pattern "[0-9]*"
+    , attribute "inputmode" "numeric"
+    , on "input" targetValue (Signal.message address << UpdateVal title)
+    , onBlur address (ToggleEdit title)
+    , onEnter address (ToggleEdit title)
+    , value (toString displayValue)
+    , autofocus True
+    ]
+    []
 
 timer : Address Action -> Int -> Bool -> Html
 timer address time ticking =
@@ -319,25 +334,21 @@ timer address time ticking =
       if ticking then "stop" else "start"
 
     timerButtons =
-      if not ticking && time /= 0 then
-        [ a
-            [ classList [("button", True), ("button-left", True)]
+      let
+        leftButton =
+          a [ classList [("button", True), ("button-left", True)]
             , onClick address ToggleTicking
             ]
             [ text toggleText ]
-        , a
-            [ classList [("button", True), ("button-right", True)]
+
+        rightButton =
+          a [ classList [("button", True), ("button-right", True)]
             , onClick address ResetTimer
             ]
             [ text "reset" ]
-        ]
-      else
-        [ a
-            [ classList [("button", True), ("button-left", True)]
-            , onClick address ToggleTicking
-            ]
-            [ text toggleText ]
-        ]
+      in
+        if not ticking && time /= 0 then [ leftButton, rightButton ]
+        else [ leftButton ]
   in
     div [ classList [("column", True), ("timer", True)] ]
       [ div [ class "flex-2" ] [ h2 [] [ text "timer" ] ]
@@ -382,12 +393,12 @@ decCoffee unit n =
 incWater : Unit -> Float -> Float
 incWater unit n =
   if unit == G then n + 1
-  else toFloat (round (n + (toDecimal (ozToG 1)) / 10))
+  else roundFloat (n + (toDecimal (ozToG 1)) / 10)
 
 decWater : Unit -> Float -> Float
 decWater unit n =
   if unit == G then n - 1
-  else toFloat (round (n - (toDecimal (ozToG 1)) / 10))
+  else roundFloat (n - (toDecimal (ozToG 1)) / 10)
 
 incRatio : Float -> Float
 incRatio n =
@@ -424,7 +435,11 @@ toDecimal val =
         Err error ->
           0
   in
-    (toFloat (round (slicedFloat * 10))) / 10
+    roundFloat (slicedFloat * 10) / 10
+
+roundFloat : Float -> Float
+roundFloat val =
+  Basics.toFloat (round val)
 
 parseFloat : String -> Float
 parseFloat string =

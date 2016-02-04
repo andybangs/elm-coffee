@@ -11,12 +11,12 @@ function swallowError(error) {
 }
 
 gulp.task('elm', ['elm-init'], function() {
-  return gulp.src('./Calculator.elm')
+  return gulp.src('./src/Calculator.elm')
     .pipe(elm())
     .on('error', swallowError)
     .pipe(uglify())
     .pipe(rename('calculator-min.js'))
-    .pipe(gulp.dest('./'))
+    .pipe(gulp.dest('./dist/'))
 });
 
 gulp.task('default', ['elm'], function() {
